@@ -1,11 +1,24 @@
-from flask import Flask, request, make_response, abort
+from flask import Flask, request, make_response, abort, render_template
 from flask_cors import CORS
+from flask_sslify import SSLify
+
+import os
+import dotenv
+
+from os.path import join, dirname
 from src.configs import CONFIG
 from src.modules import WorkerManager
-from src.modules.authorization import generateKey
 from src.modules.cache import CacheManager
 
-app = Flask(__name__)
+dotenv.load_dotenv(dotenv_path='./.env')
+PUBLIC_DIR = os.getenv("PUBLIC_DIR")
+TEMPLATE = os.getenv("TEMPLATE")
+STATIC_DIR = os.getenv("STATIC_DIR")
+
+app = Flask(__name__, template_folder=TEMPLATE, static_folder=STATIC_DIR)
+sslify = SSLify(app, permanent=True, subdomains=True)
+
+
 CORS(app, origins= CONFIG['accepted_origin'])
 cacheManger = CacheManager()
 cacheManger.reset()
@@ -18,6 +31,10 @@ def validateApiKey(rq):
     if cacheManger.isExist(api_key) is False:
         return abort(403, 'Invalid API Key')
     return True
+
+@app.route('/', methods = ['GET'])
+def processRoot():
+    return render_template('index.html')
 
 @app.route('/api/test_api', methods = ['GET'])
 def test_api():
@@ -57,4 +74,4 @@ if __name__ == '__main__':
     default_key = '6358a1fa5924e93498833626da90e7d5'
     cacheManger.add(default_key)
     print(f'Default API KEY: {default_key}')
-    app.run(host = CONFIG['address'], port = CONFIG['port'], debug=True)
+    app.run(host = CONFIG['address'], port = CONFIG['port'], debug=True, ssl_context='adhoc')
