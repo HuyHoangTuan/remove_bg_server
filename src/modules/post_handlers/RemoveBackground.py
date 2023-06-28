@@ -12,6 +12,5 @@ def process(datas):
         imageResponse = io.BytesIO()
         output.save(imageResponse, format='PNG')
         imageResponse.seek(0)
-
         return imageResponse
 

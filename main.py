@@ -18,12 +18,12 @@ STATIC_DIR = os.getenv("STATIC_DIR")
 app = Flask(__name__, template_folder=TEMPLATE, static_folder=STATIC_DIR)
 sslify = SSLify(app, permanent=True, subdomains=True)
 
-
-CORS(app, origins= CONFIG['accepted_origin'])
+CORS(app, origins=CONFIG['accepted_origin'])
 cacheManger = CacheManager()
 cacheManger.reset()
 
-def validateApiKey(rq):
+
+def validate_api_key(rq):
     args = rq.args
     api_key = args.get('key')
     if api_key is None:
@@ -32,26 +32,41 @@ def validateApiKey(rq):
         return abort(403, 'Invalid API Key')
     return True
 
-@app.route('/', methods = ['GET'])
-def processRoot():
+
+@app.after_request
+def before_request(response):
+    headers = {
+        'Cache-Control': 'public, max-age=3600'
+    }
+    for header, value in headers.items():
+        response.headers[header] = value
+
+    return response
+
+
+@app.route('/', methods=['GET'])
+def process_root():
     return render_template('index.html')
 
-@app.route('/api/test_api', methods = ['GET'])
+
+@app.route('/api/test_api', methods=['GET'])
 def test_api():
     return {
         'status': 'success'
     }
 
-@app.route('/api/generate_key', methods = ['GET'])
-def processGenerateKey():
-    return WorkerManager.handleGenerateKey(cacheManger)
 
-@app.route('/api/remove_background', methods = ['POST'])
-def processRemoveBackground():
-    validateResult = validateApiKey(request)
+@app.route('/api/generate_key', methods=['GET'])
+def process_generate_key():
+    return WorkerManager.handle_generate_key(cacheManger)
+
+
+@app.route('/api/remove_background', methods=['POST'])
+def process_remove_background():
+    validateResult = validate_api_key(request)
     if validateResult is not True:
         return validateResult
-    
+
     files = []
     for fileName in request.files:
         files.append(
@@ -60,18 +75,47 @@ def processRemoveBackground():
                 'file': request.files[fileName]
             }
         )
-    
+
     if len(files) < 1:
         return abort(415, 'Unsupported Media Type')
-    
-    data = WorkerManager.handleRemoveBackground(files)
+
+    data = WorkerManager.handle_remove_background(files)
     response = make_response(data)
     response.headers['Content-Type'] = 'image/png'
     response.headers['Content-Disposition'] = 'inline; filename=result.png'
     return response
- 
+
+@app.route('/api/generate_mask', methods=['POST'])
+def process_generate_mask():
+    validateResult = validate_api_key(request)
+    if validateResult is not True:
+        return validateResult
+
+    files = []
+    for fileName in request.files:
+        files.append(
+            {
+                'fileName': fileName,
+                'file': request.files[fileName]
+            }
+        )
+
+    if len(files) < 1:
+        return abort(415, 'Unsupported Media Type')
+
+    data = WorkerManager.handle_generate_mask(
+        file_name=files[0]['fileName'],
+        file=files[0]['file'],
+    )
+    
+    response = make_response(data)
+    response.headers['Content-Type'] = 'image/png'
+    response.headers['Content-Disposition'] = 'inline; filename=result.png'
+    return response
+
+
 if __name__ == '__main__':
     default_key = '6358a1fa5924e93498833626da90e7d5'
     cacheManger.add(default_key)
     print(f'Default API KEY: {default_key}')
-    app.run(host = CONFIG['address'], port = CONFIG['port'], debug=True, ssl_context='adhoc')
+    app.run(host=CONFIG['address'], port=CONFIG['port'], debug=True, ssl_context='adhoc')
