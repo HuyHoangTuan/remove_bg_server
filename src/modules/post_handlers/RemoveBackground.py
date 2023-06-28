@@ -1,16 +1,18 @@
 from PIL import Image
 from rembg import remove
-from flask import make_response
 import io
-import time
+from src.utils import Utils
 
 def process(datas):
     for i, data in enumerate(datas):
         file = data['file']
         image = Image.open(io.BytesIO(file.read()))
-        output = remove(image)
-        imageResponse = io.BytesIO()
-        output.save(imageResponse, format='PNG')
-        imageResponse.seek(0)
-        return imageResponse
+        removed_background_image = remove(image)
+
+        mask = Utils.generate_mask_for_removed_background_image(removed_background_image)
+        response = io.BytesIO()
+        mask.save(response, format='PNG')
+        response.seek(0)
+        
+        return response
 

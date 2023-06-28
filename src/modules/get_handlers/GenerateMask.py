@@ -11,7 +11,6 @@ def process(**kwargs):
     removed_background_image = remove(image)
     
     mask = Utils.generate_mask_for_removed_background_image(removed_background_image)
-    print(mask)
     response = io.BytesIO()
     mask.save(response, format='PNG')
     response.seek(0)
