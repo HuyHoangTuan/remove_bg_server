@@ -26,10 +26,10 @@ def generate_mask_for_removed_background_image(removed_background_image):
         ]
     )
 
-    # eroded_alpha_np = grey_erosion(alpha_np, structure=structure_np).astype(alpha_np.dtype)
-    # dilated_alpha_np = grey_dilation(eroded_alpha_np, structure=structure_np).astype(alpha_np.dtype)
+    eroded_alpha_np = grey_erosion(alpha_np, structure=structure_np).astype(alpha_np.dtype)
+    dilated_alpha_np = grey_dilation(eroded_alpha_np, structure=structure_np).astype(alpha_np.dtype)
 
-    binary_mask_np = alpha_np
+    binary_mask_np = dilated_alpha_np
 
     mask_np = image_np
     for row in range(0, mask_np.shape[0]):
