@@ -24,7 +24,7 @@ cacheManger.reset()
 
 
 def validate_api_key(rq):
-    args = rq.args
+    args = rq.form
     api_key = args.get('key')
     if api_key is None:
         return abort(403, 'Invalid API Key')
